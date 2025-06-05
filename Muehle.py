@@ -20,6 +20,8 @@ positions = outerrec + middlerec + innerrec
 # alle belegten Positionen 
 occupied = {}
 
+
+
 screen = pygame.display.set_mode(size)
 
 def board():
@@ -56,6 +58,7 @@ def get_neighbors(pos): # Funktion, um die Nachbarn einer Position zu finden
                 # überprüfen des nächsten Nachbarn
             if idx < len(lst) - 1:
                 neighbors.append(lst[idx+1])
+    return neighbors #liste wird zurückgegeben, die alle Nachbarn der Position enthält
 # Wessen Zug ist es?
 current_turn = 'white'
 stones_placed = 0
@@ -96,6 +99,7 @@ while True:
                         selected_stone = None
                     else:
                         continue
+            
     screen.fill(black)
     board()
     for pos, color in occupied.items():
