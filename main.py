@@ -68,23 +68,39 @@ def get_nearest_position(mouse_pos, threshold=10):
             return pos
     return None
 
-def get_neighbors(pos): # Funktion, um die Nachbarn einer Position zu finden
-    neighbors = []
-    lists = [outerrec, middlerec, innerrec, firstline, secondline, thirdline, fourthline]
-    for lst in lists:
-        if pos in lst:
-            idx = lst.index(pos)
-            #überprüfen des vorherigen Nachbarn 
-            if idx > 0:
-                neighbors.append(lst[idx-1])
-            else:
-                neighbors.append(lst[-1])
-                # überprüfen des nächsten Nachbarn
-            if idx < len(lst) - 1:
-                neighbors.append(lst[idx+1])
-            else:
-                neighbors.append(lst[0])
-    return neighbors #liste wird zurückgegeben, die alle Nachbarn der Position enthält
+def get_neighbors(pos):
+    
+    neighbors = set()
+
+    def add_from_list(lst, allow_wrap):
+        if pos not in lst:
+            return
+        idx = lst.index(pos)
+
+        # vorheriger
+        if idx > 0:
+            neighbors.add(lst[idx - 1])
+        elif allow_wrap:
+            neighbors.add(lst[-1])
+
+        # nächster
+        if idx < len(lst) - 1:
+            neighbors.add(lst[idx + 1])
+        elif allow_wrap:
+            neighbors.add(lst[0])
+
+    # Ringe (mit Wrap)
+    add_from_list(outerrec, True)
+    add_from_list(middlerec, True)
+    add_from_list(innerrec, True)
+
+    # Verbindungs­linien (ohne Wrap)
+    add_from_list(firstline,  False)
+    add_from_list(secondline, False)
+    add_from_list(thirdline,  False)
+    add_from_list(fourthline, False)
+
+    return list(neighbors)
 # Wessen Zug ist es?
 move_count_without_mill = 0
 positions_history = []
