@@ -122,20 +122,21 @@ def check_game_status():
     red_stones = [pos for pos in occupied if occupied[pos] == 'red']
 
     # Überprüfen, ob ein Spieler weniger als 3 Steine hat (nur wenn beide Spieler mindestens 9 Steine platziert haben)
-    if white_placed >= 9 and red_placed >= 9:
-        if len(white_stones) < 3:
-            print("Red gewinnt! White hat weniger als 3 Steine.")
-            return
-        if len(red_stones) < 3:
-            print("White gewinnt! Red hat weniger als 3 Steine.")
-            return
+    
+    if len(white_stones) < 3 and placing_phase == False:
+        end_game("Rot gewinnt!", "Weiß hat weniger als 3 Steine.")
+        return
+    if len(red_stones) < 3 and placing_phase == False:
+        end_game("Weiß gewinnt!", "Rot hat weniger als 3 Steine.")
+        return
+
         # Überprüfen, ob ein Spieler keine gültigen Züge mehr machen kann
-        white_moves = any(
+        white_moves = ( (len(white_stones) == 3 and any(p not in occupied for p in positions)) or any(
             pos for pos in white_stones if any(neighbor not in occupied for neighbor in get_neighbors(pos))
-        )
-        red_moves = any(
+        ) )
+        red_moves = ( (len(red_stones) == 3 and any(p not in occupied for p in positions)) or any(
             pos for pos in red_stones if any(neighbor not in occupied for neighbor in get_neighbors(pos))
-        )
+        ) )
         if not white_moves and not red_moves:
             print("Unentschieden! Beide Spieler können keine Züge mehr machen.")
             return
@@ -252,6 +253,7 @@ async def main():
                         print("Gegnerischer Stein ausgewählt:", removal_selection)
                         del occupied[pos]
                         removal_mode = False
+                        check_game_status()
                         current_turn = 'red' if current_turn == 'white' else 'white'
                     else:
                         print("Ungültige Auswahl. Wähle einen gegnerischen Stein.")
@@ -288,8 +290,10 @@ async def main():
                             selected_stone = pos
                     else:   
                         # Nur reagieren, wenn pos eine gültige Position ist
-                        if pos not in occupied and pos in get_neighbors(selected_stone):
-                            # Stein bewegen
+                        player_stones = [p for p in occupied if occupied[p] == current_turn]
+                        can_fly = len(player_stones) == 3
+                        if pos not in occupied and (can_fly or pos in get_neighbors(selected_stone)):
+                        # Stein bewegen
                             occupied[pos] = current_turn
                             del occupied[selected_stone]
                             selected_stone = None
