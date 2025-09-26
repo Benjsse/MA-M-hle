@@ -6,6 +6,8 @@ from ai_heuristic import (
 
 pygame.init()
 
+DIFFICULTY_OVERRIDE = None
+
 size = width, height = 800, 800
 black = 0, 0, 0
 white = 255, 255, 255
@@ -182,13 +184,19 @@ def handle_ai_turn(depth):
 
 def difficulty_to_depth():
     # Mapping: leicht -> 1, mittel -> 3, schwer -> 4
+    if DIFFICULTY_OVERRIDE is not None:
+        return int(DIFFICULTY_OVERRIDE)
+    import os
     diff = os.getenv("DIFFICULTY", "leicht").strip().lower()
     if diff.startswith("mit"): return 3
-    if diff.startswith("sch"): return 6
+    elif diff.startswith("sch"): return 5
     return 1
 
-async def main():
-    global current_turn, stones_placed, selected_stone, removal_mode, removal_selection, move_count_without_mill
+async def main(depth=None):
+    global current_turn, stones_placed, selected_stone, removal_mode, removal_selection, move_count_without_mill, DIFFICULTY_OVERRIDE
+
+    if depth is not None:
+        DIFFICULTY_OVERRIDE = depth
 
     depth = difficulty_to_depth()
 

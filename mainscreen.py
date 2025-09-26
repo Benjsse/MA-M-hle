@@ -1,114 +1,105 @@
+# mainscreen.py  (web-tauglich, ohne subprocess; robustes Fallback für depth)
 import sys
-import pygame
-import subprocess
 import os
+import pygame
+import asyncio
+import inspect
 
 pygame.init()
 
 WIDTH, HEIGHT = 800, 800
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Mühlespiel – Hauptmenü")
+pygame.display.set_caption("Mühlespiel – Hauptmenü (Web-fähig)")
 
 # Farben
 BLACK = (10, 10, 14)
 WHITE = (240, 240, 240)
 GREY  = (120, 120, 130)
 BLUE  = (0, 120, 255)
-BLUE_DARK = (0, 70, 180)
 
-# Typo
 FONT_TITLE = pygame.font.SysFont(None, 64)
 FONT_ITEM  = pygame.font.SysFont(None, 40)
 FONT_HINT  = pygame.font.SysFont(None, 24)
 
 MENU_ITEMS = [
-    ("PvP ", "pvp"),
-    ("Leicht", "leicht"),
-    ("Mittel", "mittel"),
-    ("Schwer", "schwer"),
+    ("Spieler vs Spieler (PvP)", "pvp"),
+    ("Gegen KI – leicht",        ("ai", 1)),
+    ("Gegen KI – mittel",        ("ai", 3)),
+    ("Gegen KI – schwer",        ("ai", 6)),
 ]
 
-def draw_centered_text(text, font, color, y):
+DIFF_MAP = {1: "leicht", 3: "mittel", 6: "schwer"}
+
+def draw_centered_text(text, font, y, color=WHITE):
     surf = font.render(text, True, color)
     rect = surf.get_rect(center=(WIDTH // 2, y))
     screen.blit(surf, rect)
-    return rect
 
-
-def launch_ai(difficulty):
-    import subprocess
-    import os
-
-    # Setze die Umgebungsvariable für die Schwierigkeit
-    env = os.environ.copy()
-    env["DIFFICULTY"] = difficulty.lower()
-
-    # Starte player_vs_ai.py mit entsprechender Schwierigkeit
-    subprocess.Popen([sys.executable, "player_vs_ai.py"], env=env)
-
-
-def run_menu():
-    clock = pygame.time.Clock()
+def menu_loop():
     selected_idx = 0
-    title_y = 180
-    first_item_y = 300
-    item_gap = 64
+    blink = 0
+    clock = pygame.time.Clock()
 
     while True:
-        hover_idx = None
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                pygame.quit(); sys.exit()
+                pygame.quit(); sys.exit(0)
             elif event.type == pygame.KEYDOWN:
+                if event.key in (pygame.K_ESCAPE,):
+                    pygame.quit(); sys.exit(0)
                 if event.key in (pygame.K_UP, pygame.K_w):
                     selected_idx = (selected_idx - 1) % len(MENU_ITEMS)
-                elif event.key in (pygame.K_DOWN, pygame.K_s):
+                if event.key in (pygame.K_DOWN, pygame.K_s):
                     selected_idx = (selected_idx + 1) % len(MENU_ITEMS)
-                elif event.key in (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE):
+                if event.key in (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE):
                     return MENU_ITEMS[selected_idx][1]
-                elif event.key == pygame.K_ESCAPE:
-                    return None
 
         screen.fill(BLACK)
-        draw_centered_text("Mühlespiel",       FONT_TITLE, WHITE, title_y)
-        draw_centered_text("Wähle einen Modus", FONT_HINT, GREY,   title_y + 48)
-    
-        mouse_pos = pygame.mouse.get_pos()
-        for i, (label, key) in enumerate(MENU_ITEMS):
-            y = first_item_y + i * item_gap
-            is_selected = (i == selected_idx)
-            rect = draw_centered_text(label, FONT_ITEM, (BLUE if is_selected else WHITE), y)
-            if rect.collidepoint(mouse_pos):
-                hover_idx = i
-                underline_start = (rect.left, rect.bottom + 4)
-                underline_end   = (rect.right, rect.bottom + 4)
-                pygame.draw.line(screen, BLUE_DARK, underline_start, underline_end, 3)
+        draw_centered_text("Mühlespiel", FONT_TITLE, 120)
+        draw_centered_text("Wähle einen Modus", FONT_ITEM, 180, GREY)
 
-        if hover_idx is not None:
-            selected_idx = hover_idx
-            if pygame.mouse.get_pressed(3)[0]:
-                pygame.time.delay(120)
-                return MENU_ITEMS[selected_idx][1]
+        base_y = 280
+        for i, (label, _val) in enumerate(MENU_ITEMS):
+            color = BLUE if i == selected_idx and (blink // 20) % 2 == 0 else WHITE
+            draw_centered_text(label, FONT_ITEM, base_y + i * 60, color)
 
-        draw_centered_text("↑/↓ auswählen • Enter bestätigen • ESC beenden", FONT_HINT, GREY, HEIGHT - 60)
+        draw_centered_text("↑/↓ Navigieren • Enter Start • Esc Beenden", FONT_HINT, HEIGHT - 40, GREY)
         pygame.display.flip()
+        blink += 1
         clock.tick(60)
 
-def launch_from_menu():
-    choice = run_menu()
-    if choice is None:
-        pygame.quit(); sys.exit(0)
+async def run_pvp():
+    import main as pvp_module
+    # pvp_module.main ist async -> direkt awaiten
+    await pvp_module.main()
 
-    if choice == "leicht":
-        launch_ai("leicht"); pygame.quit(); sys.exit(0)
-    if choice == "pvp":
-        import main
-    if choice == "mittel":
-        launch_ai("mittel"); pygame.quit(); sys.exit(0)
-    if choice == "schwer":
-        launch_ai("schwer"); pygame.quit(); sys.exit(0)
-    if choice == "unmoeglich":
-        pygame.quit(); sys.exit(0)
+async def run_ai(depth_choice: int):
+    import player_vs_ai as ai_module
+
+    # 1) Wenn player_vs_ai.main(depth=...) unterstützt -> benutze es
+    try:
+        sig = inspect.signature(ai_module.main)
+        if "depth" in sig.parameters:
+            await ai_module.main(depth=depth_choice)
+            return
+    except (AttributeError, ValueError, TypeError):
+        # Falls main nicht inspizierbar ist, gehe zu Fallback 2)
+        pass
+
+    # 2) Fallback: Umgebungsvariable setzen, wenn depth-Param fehlt
+    os.environ["DIFFICULTY"] = DIFF_MAP.get(depth_choice, "leicht")
+    await ai_module.main()  # ohne Argumente
+
+async def main():
+    """Web-tauglicher Entry-Point: Kein subprocess, keine os.exec*."""
+    while True:
+        choice = menu_loop()
+        if choice == "pvp":
+            await run_pvp()
+        elif isinstance(choice, tuple) and choice[0] == "ai":
+            await run_ai(choice[1])
+        # Nach Spielende zurück ins Menü (Loop läuft weiter)
 
 if __name__ == "__main__":
-    launch_from_menu()
+    asyncio.run(main())
+
