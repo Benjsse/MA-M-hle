@@ -124,10 +124,10 @@ def check_game_status():
     # Überprüfen, ob ein Spieler weniger als 3 Steine hat (nur wenn beide Spieler mindestens 9 Steine platziert haben)
     
     if len(white_stones) < 3 and placing_phase == False:
-        end_game("Rot gewinnt!", "Weiß hat weniger als 3 Steine.")
+        end_game("Rot gewinnt!", "Weiss hat weniger als 3 Steine.")
         return
     if len(red_stones) < 3 and placing_phase == False:
-        end_game("Weiß gewinnt!", "Rot hat weniger als 3 Steine.")
+        end_game("Weiss gewinnt!", "Rot hat weniger als 3 Steine.")
         return
 
         # Überprüfen, ob ein Spieler keine gültigen Züge mehr machen kann
@@ -222,7 +222,7 @@ async def main():
             if event.type == pygame.KEYDOWN and event.key == pygame.K_r:
                 reset_game()
 
-            # wenn das Spiel vorbei ist, Eingaben (außer R/QUIT) ignorieren
+            # wenn das Spiel vorbei ist, Eingaben (ausser R/QUIT) ignorieren
             if game_over:
                 continue
             if removal_mode:
@@ -268,7 +268,7 @@ async def main():
                         occupied[pos] = current_turn
                         stones_placed += 1
                         if current_turn == 'white':
-                            white_placed += 1  # Zähler für weiße Steine erhöhen
+                            white_placed += 1  # Zähler für weisse Steine erhöhen
                         else:
                             red_placed += 1  # Zähler für rote Steine erhöhen
                         for mill in Mills:
@@ -331,7 +331,7 @@ async def main():
             ])
         else:
             draw_top_text([
-                (f"Am Zug: {'Weiß' if current_turn=='white' else 'Rot'}", False),
+                (f"Am Zug: {'Weiss' if current_turn=='white' else 'Rot'}", False),
                 (f"Platzierphase: {'Ja' if placing_phase else 'Nein'}", False),
                 ("Drücke R für Neustart", False),
             ])

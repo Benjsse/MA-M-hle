@@ -1,5 +1,7 @@
 import sys
 import pygame
+import subprocess
+import os
 
 pygame.init()
 
@@ -31,6 +33,18 @@ def draw_centered_text(text, font, color, y):
     rect = surf.get_rect(center=(WIDTH // 2, y))
     screen.blit(surf, rect)
     return rect
+
+
+def launch_ai(difficulty):
+    import subprocess
+    import os
+
+    # Setze die Umgebungsvariable für die Schwierigkeit
+    env = os.environ.copy()
+    env["DIFFICULTY"] = difficulty.lower()
+
+    # Starte player_vs_ai.py mit entsprechender Schwierigkeit
+    subprocess.Popen([sys.executable, "player_vs_ai.py"], env=env)
 
 
 def run_menu():
@@ -86,15 +100,13 @@ def launch_from_menu():
         pygame.quit(); sys.exit(0)
 
     if choice == "leicht":
-        # PvP kommt später – wir starten noch nicht.
-        pygame.quit(); sys.exit(0)
+        launch_ai("leicht"); pygame.quit(); sys.exit(0)
     if choice == "pvp":
-        # PvP kommt später – wir starten noch nicht.
         import main
     if choice == "mittel":
-        pygame.quit(); sys.exit(0)
+        launch_ai("mittel"); pygame.quit(); sys.exit(0)
     if choice == "schwer":
-        pygame.quit(); sys.exit(0)
+        launch_ai("schwer"); pygame.quit(); sys.exit(0)
     if choice == "unmoeglich":
         pygame.quit(); sys.exit(0)
 
