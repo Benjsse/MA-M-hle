@@ -87,7 +87,6 @@ async def main():
         choice = menu_loop()
         if isinstance(choice, tuple) and choice[0] == "ai":
             await run_ai(choice[1])
-    await asyncio.sleep(0)
         # Nach Spielende zurück ins Menü (Loop läuft weiter)
 
 if __name__ == "__main__":
